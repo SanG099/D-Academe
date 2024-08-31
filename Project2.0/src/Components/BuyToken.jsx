@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import Loader from './Loader';
+import { ethers } from "ethers"; // Correctly import ethers
+import Loader from './Loader'; // Import your Loader component
 
 const BuyToken = ({ contractAddress, contractABI }) => {
   const [tokensToBuy, setTokensToBuy] = useState("");

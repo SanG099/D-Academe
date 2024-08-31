@@ -43,7 +43,8 @@ function reducer(state, action) {
     case 'ADD_TO_CART':
       return { ...state, cartItems: [...state.cartItems, action.payload] };
     case 'REMOVE_FROM_CART':
-      return { ...state, cartItems: state.cartItems.filter(course => course.id !== action.payload) };
+      // Filter out the course with the matching id
+      return { ...state, cartItems: state.cartItems.filter((course) => course.id !== action.payload) };
     case 'ADD_ORDER':
       return { ...state, orders: [...state.orders, action.payload] };
     case 'SET_LOADING':
@@ -168,9 +169,16 @@ function App() {
     }
   };
 
-  const removeFromCart = (course) => {
-    dispatch({ type: 'REMOVE_FROM_CART', payload: course });
-  };
+  // Ensure this function is only declared once in your file
+const removeFromCart = (course) => {
+  // Dispatch an action to remove the course from the cart
+  dispatch({ type: 'REMOVE_FROM_CART', payload: course.id }); // Pass course.id to uniquely identify the course
+};
+
+// Ensure this is the only declaration for removeFromCart
+// If you find another declaration, remove it or update to this unified function
+
+  
 
   return (
     <Router>
@@ -209,10 +217,18 @@ function App() {
                 />
               }
             />
-            <Route
+            {/* <Route
               path="/cart"
               element={<Cart cartItems={state.cartItems} removeFromCart={removeFromCart} />}
-            />
+            /> */}
+                <Route
+                     path="/cart"
+                        element={
+                            <Cart
+                                cartItems={state.cartItems}
+                                removeFromCart={removeFromCart} />}
+/>
+
             <Route path="/my-order" element={<MyOrder orders={state.orders} />} />
             <Route path="/about" element={<About />} />
             <Route path="/help" element={<Help />} />
