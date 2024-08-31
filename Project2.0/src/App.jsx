@@ -13,9 +13,9 @@ import About from './Components/About';
 import Help from './Components/Help';
 import Loader from './Components/Loader';
 import Courses from './Components/Courses';
+import ABI from './Constant/ABI.json'; // Ensure ABI.json is correctly imported
 
-const contractAddress = '0x4F0DAE5208130D83661825544798d82155Ef97Fe';
-const tokenPriceInEth = '0.0000000001';
+const contractAddress = '0x8850ca275c31cb833d8Ea007bDd60139fF808E09';
 
 const initialState = {
   account: '',
@@ -41,9 +41,9 @@ function reducer(state, action) {
     case 'SET_TOKENS_TO_BUY':
       return { ...state, tokensToBuy: action.payload };
     case 'ADD_TO_CART':
-      return { ...state, cartCourses: [...state.cartCourses, action.payload] };
+      return { ...state, cartItems: [...state.cartItems, action.payload] };
     case 'REMOVE_FROM_CART':
-      return { ...state, cartCourses: state.cartCourses.filter(course => course.id !== action.payload) };
+      return { ...state, cartItems: state.cartItems.filter(course => course.id !== action.payload) };
     case 'ADD_ORDER':
       return { ...state, orders: [...state.orders, action.payload] };
     case 'SET_LOADING':
@@ -85,7 +85,7 @@ function App() {
         const balance = await web3.eth.getBalance(account);
         dispatch({ type: 'SET_BALANCE', payload: web3.utils.fromWei(balance, 'ether') });
       } catch (error) {
-        console.error(error);
+        console.error('Error fetching balance:', error);
       }
     }
   };
@@ -116,26 +116,25 @@ function App() {
   }, [state.account, state.contract]);
 
   const buyTokens = async (numberOfTokens) => {
-    console.log('Attempting to buy tokens:', numberOfTokens);
     dispatch({ type: 'SET_LOADING', payload: true });
+  
     if (state.contract && state.account) {
       try {
         const web3 = new Web3(window.ethereum);
-        const rateInEth = tokenPriceInEth;
-        const totalCostInWei = web3.utils.toWei((numberOfTokens * rateInEth).toString(), 'ether');
-
-        console.log(`Total Cost (ETH): ${web3.utils.fromWei(totalCostInWei, 'ether')}`);
-
-        const transaction = await state.contract.methods.buyTokens().send({
-          from: state.account,
-          value: totalCostInWei,
-        });
-
+        // Assuming token has 18 decimals
+        const amount = web3.utils.toWei(numberOfTokens.toString(), 'D-Academe'); 
+  
+        const transaction = await state.contract.methods
+          .mint(state.account, amount)
+          .send({
+            from: state.account,
+            value: 0, // Adjust if your minting function requires Ether
+          });
+  
         console.log('Transaction successful:', transaction);
-        await getTokenBalance(state.contract, state.account);
-        console.log('Tokens successfully purchased');
+        await getTokenBalance(state.contract, state.account); // Update token balance
       } catch (error) {
-        console.error('Error buying tokens:', error);
+        console.error('Error minting tokens:', error);
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
@@ -155,13 +154,11 @@ function App() {
     dispatch({ type: 'SET_LOADING', payload: true });
     if (state.contract && state.account) {
       try {
-        await state.contract.methods.purchaseItem(course.id, quantity, name, address, contact).send({ from: state.account });
-
-        dispatch({ type: 'ADD_ORDER', payload: { ...course, quantity, name, address, contact } });
-        dispatch({ type: 'REMOVE_FROM_CART', payload: course });
-
+        await state.contract.methods.purchaseItem(item.id, quantity, name, address, contact).send({ from: state.account });
+        dispatch({ type: 'ADD_ORDER', payload: { ...item, quantity, name, address, contact } });
+        dispatch({ type: 'REMOVE_FROM_CART', payload: item });
       } catch (error) {
-        console.error(`Error buying ${course.name}:`, error);
+        console.error(`Error buying ${item.name}:`, error);
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
@@ -219,8 +216,7 @@ function App() {
             <Route path="/my-order" element={<MyOrder orders={state.orders} />} />
             <Route path="/about" element={<About />} />
             <Route path="/help" element={<Help />} />
-            
-            <Route path="/courses" element={<Courses />} /> {/* Add route for Courses */}
+            <Route path="/courses" element={<Courses />} />
           </Routes>
         </div>
         <Footer />

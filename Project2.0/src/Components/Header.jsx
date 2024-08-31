@@ -6,7 +6,7 @@ const Header = ({ connectWallet, disconnectWallet, account, balance, tokenBalanc
     <header className="w-full flex items-center justify-between bg-green-400 text-white py-4 px-6 shadow-lg">
       {/* Logo or Site Title */}
       <div className="flex items-center gap-6">
-        <h1 className="text-3xl font-bold tracking-wide">E-Learning</h1>
+        <h1 className="text-3xl font-bold tracking-wide">D-Academe</h1>
       </div>
 
       {/* Navigation Links */}
