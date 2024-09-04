@@ -14,8 +14,14 @@ import Help from './Components/Help';
 import Loader from './Components/Loader';
 import Courses from './Components/Courses';
 import ABI from './Constant/ABI.json'; // Ensure ABI.json is correctly imported
+import Livepeer from "livepeer";
 
-const contractAddress = '0x8850ca275c31cb833d8Ea007bDd60139fF808E09';
+// const livepeer = new Livepeer({
+//   apiKey: process.env.YOUR_PRIVATE_API_KEY,
+// });
+
+
+const contractAddress = '0x4c0A093D46771A7A37F8aE37962989907070609e';
 
 const initialState = {
   account: '',

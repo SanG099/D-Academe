@@ -1,23 +1,69 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import tokenImage from '../assets/Token.png';
 import cartImg from '../assets/Cart.png';
 import buyImg from '../assets/courses.png';
+import courseImg from '../assets/images.jpeg';
+import CoursePopup from '../Components/CoursePopup' // Import the popup component
 
 const Home = ({ contract, account }) => {
   const navigate = useNavigate();
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
-  const goToBuyToken = () => {
-    navigate('/buy-token');
+  // Navigation handlers
+  const goToBuyToken = () => navigate('/buy-token');
+  const goToCart = () => navigate('/Cart');
+  const goToBuyCourses = () => navigate('/BuyCourses');
+
+  // Sample data for courses
+  const courseDetails = {
+    title: 'Solidity',
+    description: 'Learn the basics of Solidity and smart contract development.',
+    benefits: [
+      'Understand the fundamentals of blockchain development',
+      'Gain hands-on experience with smart contracts',
+      'Get certified in blockchain programming',
+    ],
   };
 
-  const goToCart = () => {
-    navigate('/Cart');
+  // Handlers for the course popup
+  const openPopup = (course) => {
+    setSelectedCourse(course);
+    setIsPopupOpen(true);
   };
 
-  const goToBuyCourses = () => {
-    navigate('/courses');
+  const closePopup = () => setIsPopupOpen(false);
+  const handleBuy = () => {
+    alert('Course purchased successfully!');
+    closePopup();
   };
+
+  // Component for the informational cards
+  const InfoCard = ({ icon, title, description }) => (
+    <div className="flex flex-col items-center p-6 bg-gray-100 hover:bg-green-300 rounded-lg shadow-lg">
+      <div className="text-green-600 text-4xl mb-4">{icon}</div>
+      <h3 className="text-xl font-semibold text-gray-800 mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </div>
+  );
+
+  // Component for the course cards
+  const CourseCard = ({ imgSrc, title, instructor, duration, price, onClick }) => (
+    <div className="bg-white p-4 rounded-lg shadow-lg">
+      <img src={imgSrc} alt="Course Image" className="w-full h-40 object-cover rounded-t-lg" />
+      <h3 className="text-lg font-semibold mt-4">{title}</h3>
+      <p className="text-sm text-gray-500 mt-2">{instructor}</p>
+      <p className="text-sm text-gray-500">{duration}</p>
+      <p className={`font-bold mt-2 ${price === 'Free' ? 'text-green-600' : ''}`}>{price}</p>
+      <button
+        onClick={onClick}
+        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded mt-4"
+      >
+        View Course
+      </button>
+    </div>
+  );
 
   return (
     <section className="bg-white min-h-screen flex flex-col items-center justify-center">
@@ -33,61 +79,53 @@ const Home = ({ contract, account }) => {
           Book Your Seat
         </button>
 
+        {/* Informational Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          <div className="flex flex-col items-center p-6 bg-gray-100  hover:bg-green-300 rounded-lg shadow-lg">
-            <div className="text-green-600 text-4xl mb-4">🎓</div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Earn Certificates</h3>
-            <p className="text-gray-600">Validate Your Skills, Open Doors: Earn Industry-Recognized Certificates!</p>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-gray-100 hover:bg-green-300 rounded-lg shadow-lg">
-            <div className="text-green-600 text-4xl mb-4">💸</div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Free & Freemium Courses</h3>
-            <p className="text-gray-600">Unlock Maximum Benefits: Free and Freemium Courses for Practical Knowledge!</p>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-gray-100  hover:bg-green-300 rounded-lg shadow-lg">
-            <div className="text-green-600 text-4xl mb-4">👨‍🏫</div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Industry Experts</h3>
-            <p className="text-gray-600">Elevate Your Professional Growth: Learn from Industry Experts and Practitioners!</p>
-          </div>
+          <InfoCard
+            icon="🎓"
+            title="Earn Certificates"
+            description="Validate Your Skills, Open Doors: Earn Industry-Recognized Certificates!"
+          />
+          <InfoCard
+            icon="💸"
+            title="Free & Freemium Courses"
+            description="Unlock Maximum Benefits: Free and Freemium Courses for Practical Knowledge!"
+          />
+          <InfoCard
+            icon="👨‍🏫"
+            title="Industry Experts"
+            description="Elevate Your Professional Growth: Learn from Industry Experts and Practitioners!"
+          />
         </div>
 
-        {/* Existing Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="flex flex-col items-center p-6 bg-gray-100 rounded-lg shadow-lg">
-            <img src={tokenImage} alt="Buy Token" className="w-32 h-32 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Buy Token</h2>
-            <p className="text-gray-600 mb-4">
-              Purchase tokens to access premium content and courses.
-            </p>
-            <button
-              onClick={goToBuyToken}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded transition-colors duration-300"
-            >
-              Buy Token
-            </button>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-gray-100 rounded-lg shadow-lg">
-            <img src={cartImg} alt="Cart" className="w-32 h-32 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Cart</h2>
-            <p className="text-gray-600 mb-4">View the courses and content in your cart.</p>
-            <button
-              onClick={goToCart}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded transition-colors duration-300"
-            >
-              View Cart
-            </button>
-          </div>
-          <div className="flex flex-col items-center p-6 bg-gray-100 rounded-lg shadow-lg">
-            <img src={buyImg} alt="Buy Courses" className="w-32 h-32 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Buy Courses</h2>
-            <p className="text-gray-600 mb-4">Browse and purchase our courses to enhance your skills.</p>
-            <button
-              onClick={goToBuyCourses}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded transition-colors duration-300"
-            >
-              Buy Courses
-            </button>
-          </div>
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-100">
+          <CourseCard
+            imgSrc={tokenImage}
+            title="Buy Token"
+            description="Purchase tokens to access premium content and courses."
+             className="w-64 h-64 mb-2 rounded-lg object-cover"
+            onClick={goToBuyToken}
+            
+
+           
+          />
+          <CourseCard
+            imgSrc={cartImg}
+            title="Cart"
+            description="View the courses and content in your cart."
+             className="w-64 h-64 mb-2 rounded-lg object-cover"
+            onClick={goToCart}
+            
+            
+          />
+          <CourseCard
+            imgSrc={buyImg}
+             className="w-64 h-64 mb-2 rounded-lg object-cover"
+            title="Buy Courses"
+            description="Browse and purchase our courses to enhance your skills."
+            onClick={goToBuyCourses}
+          />
         </div>
 
         {/* Featured Courses Section */}
@@ -95,22 +133,15 @@ const Home = ({ contract, account }) => {
           <h2 className="text-3xl font-bold text-green-600 mb-4">Featured Courses</h2>
           <p className="text-gray-600 mb-8">Expand Your Skills: Explore our Featured Online Courses!</p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Add course cards here similar to the example provided */}
-            <div className="bg-white p-4 rounded-lg shadow-lg">
-              <img
-                src="path-to-course-image.jpg"
-                alt="Course Image"
-                className="w-full h-40 object-cover rounded-t-lg"
-              />
-              <h3 className="text-lg font-semibold mt-4">Solidity</h3>
-              <p className="text-sm text-gray-500 mt-2">Instructor Name</p>
-              <p className="text-sm text-gray-500">Duration</p>
-              <p className="text-green-600 font-bold mt-2">Tkn 65</p>
-              <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded mt-4">
-                View Course
-              </button>
-            </div>
-            {/* Repeat the above card for each featured course */}
+            <CourseCard
+              imgSrc={courseImg}
+              title="Solidity"
+              instructor="Suyan Thapa"
+              duration="12hrs 30min"
+              price="Tkn 65"
+              onClick={() => openPopup(courseDetails)}
+            />
+            {/* Add more cards as needed */}
           </div>
         </div>
 
@@ -119,24 +150,22 @@ const Home = ({ contract, account }) => {
           <h2 className="text-3xl font-bold text-green-600 mb-4">Free Courses</h2>
           <p className="text-gray-600 mb-8">Expand Your Skills: Explore Free Online Courses!</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Add course cards here similar to the example provided */}
-            <div className="bg-white p-4 rounded-lg shadow-lg">
-              <img
-                src="path-to-course-image.jpg"
-                alt="Course Image"
-                className="w-full h-40 object-cover rounded-t-lg"
-              />
-              <h3 className="text-lg font-semibold mt-4">Write HelloWorld</h3>
-              <p className="text-sm text-gray-500 mt-2">Instructor Name</p>
-              <p className="text-sm text-gray-500">Duration</p>
-              <p className="text-green-600 font-bold mt-2">Free</p>
-              <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded mt-4">
-                View Course
-              </button>
-            </div>
-            {/* Repeat the above card for each free course */}
+            <CourseCard
+              imgSrc="CourseImg.jpeg"
+              title="Write HelloWorld"
+              instructor="Instructor Name"
+              duration="Duration"
+              price="Free"
+              onClick={() => alert('Viewing HelloWorld Course')}
+            />
+            {/* Add more cards as needed */}
           </div>
         </div>
+
+        {/* Course Popup */}
+        {isPopupOpen && (
+          <CoursePopup course={selectedCourse} onClose={closePopup} onBuy={handleBuy} />
+        )}
       </div>
     </section>
   );
