@@ -12,26 +12,32 @@ import MyOrder from './Components/MyOrder';
 import About from './Components/About';
 import Help from './Components/Help';
 import Loader from './Components/Loader';
+import Transactions from './Components/Transactions';
+import CoursePopup  from './Components/CoursePopup';
 import Courses from './Components/Courses';
-import ABI from './Constant/ABI.json'; // Ensure ABI.json is correctly imported
-import Livepeer from "livepeer";
+import ABI from './Constant/ABI.json'; // ABI for tokens
+import CABI from './Constant/course-ABI.json'; // ABI for courses
 
-// const livepeer = new Livepeer({
-//   apiKey: process.env.YOUR_PRIVATE_API_KEY,
-// });
+const contractAddress = '0xaA82d1F7A5c907270AFA2Bb079BB0A8027bEC2Cd';
+const courseAddress = '0x16Eb6B9aDc28301fb6559dEF18A5199E8a0eBA02';
 
 
-const contractAddress = '0x4c0A093D46771A7A37F8aE37962989907070609e';
+  
+  // Make sure to set tokenPriceInEth in the state if needed
+  const tokenPriceInEth = 0.000001; // Example token price
 
 const initialState = {
   account: '',
   balance: '',
-  contract: null,
+  tokenContract: null,
+  courseContract: null,
   tokenBalance: 50,
   tokensToBuy: 0,
   cartItems: [],
   orders: [],
+  transaction: [],
   loading: false,
+  youtubeLink: '', // Added youtubeLink state
 };
 
 function reducer(state, action) {
@@ -40,8 +46,10 @@ function reducer(state, action) {
       return { ...state, account: action.payload };
     case 'SET_BALANCE':
       return { ...state, balance: action.payload };
-    case 'SET_CONTRACT':
-      return { ...state, contract: action.payload };
+    case 'SET_TOKEN_CONTRACT':
+      return { ...state, tokenContract: action.payload };
+    case 'SET_COURSE_CONTRACT':
+      return { ...state, courseContract: action.payload };
     case 'SET_TOKEN_BALANCE':
       return { ...state, tokenBalance: action.payload };
     case 'SET_TOKENS_TO_BUY':
@@ -49,12 +57,13 @@ function reducer(state, action) {
     case 'ADD_TO_CART':
       return { ...state, cartItems: [...state.cartItems, action.payload] };
     case 'REMOVE_FROM_CART':
-      // Filter out the course with the matching id
       return { ...state, cartItems: state.cartItems.filter((course) => course.id !== action.payload) };
     case 'ADD_ORDER':
       return { ...state, orders: [...state.orders, action.payload] };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
+    case 'SET_YOUTUBE_LINK':
+      return { ...state, youtubeLink: action.payload }; // Added case for youtubeLink
     default:
       return state;
   }
@@ -62,7 +71,6 @@ function reducer(state, action) {
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-
   const connectWallet = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     if (window.ethereum) {
@@ -71,9 +79,16 @@ function App() {
         dispatch({ type: 'SET_ACCOUNT', payload: accounts[0] });
         await getBalance(accounts[0]);
         const web3 = new Web3(window.ethereum);
-        const contractInstance = new web3.eth.Contract(ABI, contractAddress);
-        dispatch({ type: 'SET_CONTRACT', payload: contractInstance });
-        await getTokenBalance(contractInstance, accounts[0]);
+        
+        // Initialize Token Contract
+        const tokenContractInstance = new web3.eth.Contract(ABI, contractAddress);
+        dispatch({ type: 'SET_TOKEN_CONTRACT', payload: tokenContractInstance });
+        await getTokenBalance(tokenContractInstance, accounts[0]);
+        
+        // Initialize Sale Contract
+        const saleContractInstance = new web3.eth.Contract(saleABI, saleAddress);
+        dispatch({ type: 'SET_SALE_CONTRACT', payload: saleContractInstance });
+        
       } catch (error) {
         console.error('Error connecting wallet:', error);
       } finally {
@@ -92,7 +107,7 @@ function App() {
         const balance = await web3.eth.getBalance(account);
         dispatch({ type: 'SET_BALANCE', payload: web3.utils.fromWei(balance, 'ether') });
       } catch (error) {
-        console.error('Error fetching balance:', error);
+        console.error(error);
       }
     }
   };
@@ -101,55 +116,69 @@ function App() {
     if (contract && account) {
       try {
         const balance = await contract.methods.balanceOf(account).call();
-        dispatch({ type: 'SET_TOKEN_BALANCE', payload: balance });
+        console.log("Updated Token Balance: ", balance);
+        const formattedBalance = Web3.utils.fromWei(balance, 'ether');
+        console.log("Formatted Token Balance: ", formattedBalance); // Add this line
+        dispatch({ type: 'SET_TOKEN_BALANCE', payload: formattedBalance });
       } catch (error) {
         console.error('Error fetching token balance:', error);
       }
     }
   };
+  
+  const saveTransaction = (transaction) => {
+    if (Array.isArray(state.transactions)) {
+      dispatch({ type: 'SET_TRANSACTIONS', payload: [...state.transactions, transaction] });
+    } else {
+      console.error('State.transactions is not an array');
+      // Optionally initialize transactions as an array
+      dispatch({ type: 'SET_TRANSACTIONS', payload: [transaction] });
+    }
+  };
+
+
 
   const disconnectWallet = () => {
     dispatch({ type: 'SET_ACCOUNT', payload: '' });
     dispatch({ type: 'SET_BALANCE', payload: '' });
-    dispatch({ type: 'SET_CONTRACT', payload: null });
+    dispatch({ type: 'SET_TOKEN_CONTRACT', payload: null });
+    dispatch({ type: 'SET_COURSE_CONTRACT', payload: null });
     dispatch({ type: 'SET_TOKEN_BALANCE', payload: 50 });
+    dispatch({ type: 'SET_YOUTUBE_LINK', payload: '' }); // Clear youtubeLink
   };
 
   useEffect(() => {
-    if (state.account && state.contract) {
+    if (state.account && state.tokenContract) {
       getBalance(state.account);
-      getTokenBalance(state.contract, state.account);
+      getTokenBalance(state.tokenContract, state.account);
     }
-  }, [state.account, state.contract]);
+  }, [state.account, state.tokenContract]);
 
-  const buyTokens = async (numberOfTokens) => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-  
-    if (state.contract && state.account) {
+  const buyTokens = async () => {
+    if (state.tokenContract && state.account) {
       try {
-        const web3 = new Web3(window.ethereum);
-        // Assuming token has 18 decimals
-        const amount = web3.utils.toWei(numberOfTokens.toString(), 'D-Academe'); 
+        const valueInWei = Web3.utils.toWei(
+          (BigInt(state.tokensToBuy) * BigInt(Web3.utils.toWei(tokenPriceInEth.toString(), 'ether'))).toString(),
+          'wei'
+        );
   
-        const transaction = await state.contract.methods
-          .mint(state.account, amount)
-          .send({
-            from: state.account,
-            value: 0, // Adjust if your minting function requires Ether
-          });
+        const receipt = await state.tokenContract.methods.buyTokens().send({
+          from: state.account,
+          value: valueInWei,
+        });
   
-        console.log('Transaction successful:', transaction);
-        await getTokenBalance(state.contract, state.account); // Update token balance
+        return receipt; // Return the transaction receipt
       } catch (error) {
-        console.error('Error minting tokens:', error);
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
+        console.error('Error buying tokens:', error);
+        throw error; // Re-throw error to be handled in the component
       }
     } else {
-      console.log("Contract or account not available");
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
-  };
+      console.log('Contract or account not available');
+    }
+  };
+
+ 
+  
 
   const addToCart = (course) => {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -157,34 +186,33 @@ function App() {
     dispatch({ type: 'SET_LOADING', payload: false });
   };
 
-  const buyItem = async (item, quantity, name, address, contact) => {
+  const buyCourse = async (course, quantity, name, address, contact) => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    if (state.contract && state.account) {
+    if (state.courseContract && state.account) {
       try {
-        await state.contract.methods.purchaseItem(item.id, quantity, name, address, contact).send({ from: state.account });
-        dispatch({ type: 'ADD_ORDER', payload: { ...item, quantity, name, address, contact } });
-        dispatch({ type: 'REMOVE_FROM_CART', payload: item });
+        // Call your contract's buyCourse method with additional parameters
+        await state.courseContract.methods.buyCourse(course.id, quantity, name, address, contact).send({ from: state.account });
+        dispatch({ type: 'ADD_ORDER', payload: { ...course, quantity, name, address, contact } });
+        dispatch({ type: 'REMOVE_FROM_CART', payload: course.id });
+
+        // Fetch the YouTube link after purchase
+        const courseDetails = await state.courseContract.methods.courses(course.id).call();
+        dispatch({ type: 'SET_YOUTUBE_LINK', payload: courseDetails.youtubeLink });
+
       } catch (error) {
-        console.error(`Error buying ${item.name}:`, error);
+        console.error(`Error buying ${course.name}:`, error);
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     } else {
-      console.log("Contract or account not available");
+      console.log("Course contract or account not available");
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
-
-  // Ensure this function is only declared once in your file
-const removeFromCart = (course) => {
-  // Dispatch an action to remove the course from the cart
-  dispatch({ type: 'REMOVE_FROM_CART', payload: course.id }); // Pass course.id to uniquely identify the course
-};
-
-// Ensure this is the only declaration for removeFromCart
-// If you find another declaration, remove it or update to this unified function
-
   
+  const removeFromCart = (course) => {
+    dispatch({ type: 'REMOVE_FROM_CART', payload: course.id });
+  };
 
   return (
     <Router>
@@ -199,7 +227,7 @@ const removeFromCart = (course) => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           {state.loading && <Loader />}
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Home contract={state.tokenContract} account={state.account} />} />
             <Route
               path="/buy-token"
               element={
@@ -208,37 +236,41 @@ const removeFromCart = (course) => {
                   setTokensToBuy={(value) => dispatch({ type: 'SET_TOKENS_TO_BUY', payload: value })}
                   buyTokens={buyTokens}
                   setLoading={(value) => dispatch({ type: 'SET_LOADING', payload: value })}
+                  saveTransaction={saveTransaction} // Pass it here
                 />
               }
+            />
+           <Route
+                path="/buy-items"
+                element={
+                  <BuyCourses
+                    contract={state.courseContract}
+                    account={state.account}
+                    addToCart={addToCart}
+                    buyCourse={buyCourse}
+                    youtubeLink={state.youtubeLink} // Pass youtubeLink to BuyCourses
+                  />
+                }
+              />
+            <Route
+              path="/cart"
+              element={<Cart items={state.cartItems} removeFromCart={removeFromCart} buyCourse={buyCourse} />}
             />
             <Route
-              path="/buy-items"
+              path="/my-orders"
+              element={<MyOrder orders={state.orders} />}
+            />
+            <Route path="/about" element={<About />} />
+            <Route
+              path="/Transactions"
               element={
-                <BuyCourses
-                  contract={state.contract}
+                <Transactions
+                  contract={state.tokenContract}
                   account={state.account}
-                  addToCart={addToCart}
-                  buyItem={buyItem}
-                  setLoading={(value) => dispatch({ type: 'SET_LOADING', payload: value })}
                 />
               }
-            />
-            {/* <Route
-              path="/cart"
-              element={<Cart cartItems={state.cartItems} removeFromCart={removeFromCart} />}
-            /> */}
-                <Route
-                     path="/cart"
-                        element={
-                            <Cart
-                                cartItems={state.cartItems}
-                                removeFromCart={removeFromCart} />}
-/>
-
-            <Route path="/my-order" element={<MyOrder orders={state.orders} />} />
-            <Route path="/about" element={<About />} />
+            />  
             <Route path="/help" element={<Help />} />
-            <Route path="/courses" element={<Courses />} />
           </Routes>
         </div>
         <Footer />

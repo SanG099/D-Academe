@@ -1,5 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Web3 from 'web3';
+
+const getTokenBalance = async (contract, account) => {
+  if (contract && account) {
+    try {
+      const balance = await contract.methods.balanceOf(account).call();
+      console.log("Raw Token Balance: ", balance);
+      const formattedBalance = Web3.utils.fromWei(balance, 'ether');
+      console.log("Formatted Token Balance: ", formattedBalance);
+      dispatch({ type: 'SET_TOKEN_BALANCE', payload: formattedBalance });
+    } catch (error) {
+      console.error('Error fetching token balance:', error);
+    }
+  }
+};
 
 const Header = ({ connectWallet, disconnectWallet, account, balance, tokenBalance }) => {
   return (
@@ -12,24 +27,13 @@ const Header = ({ connectWallet, disconnectWallet, account, balance, tokenBalanc
       {/* Navigation Links */}
       <nav className="flex-1 flex justify-center">
         <ul className="flex gap-8">
-          <li>
-            <Link to="/" className="text-white text-lg font-medium hover:text-gray-300">Home</Link>
-          </li>
-          <li>
-            <Link to="/buy-token" className="text-white text-lg font-medium hover:text-gray-300">Buy Token</Link>
-          </li>
-          <li>
-            <Link to="/buy-items" className="text-white text-lg font-medium hover:text-gray-300">Buy Course</Link>
-          </li>
-          <li>
-            <Link to="/my-order" className="text-white text-lg font-medium hover:text-gray-300">Enrolled Course</Link>
-          </li>
-          <li>
-            <Link to="/about" className="text-white text-lg font-medium hover:text-gray-300">About</Link>
-          </li>
-          <li>
-            <Link to="/help" className="text-white text-lg font-medium hover:text-gray-300">Help</Link>
-          </li>
+          <li><Link to="/" className="text-white text-lg font-medium hover:text-gray-300">Home</Link></li>
+          <li><Link to="/buy-token" className="text-white text-lg font-medium hover:text-gray-300">Buy Token</Link></li>
+          <li><Link to="/buy-items" className="text-white text-lg font-medium hover:text-gray-300">Buy Course</Link></li>
+          <li><Link to="/my-order" className="text-white text-lg font-medium hover:text-gray-300">Enrolled Course</Link></li>
+          <li><Link to="/transactions" className="text-white text-lg font-medium hover:text-gray-300">Transaction</Link></li>
+          <li><Link to="/about" className="text-white text-lg font-medium hover:text-gray-300">About</Link></li>
+          <li><Link to="/help" className="text-white text-lg font-medium hover:text-gray-300">Help</Link></li>
         </ul>
       </nav>
 
@@ -38,7 +42,7 @@ const Header = ({ connectWallet, disconnectWallet, account, balance, tokenBalanc
         {account ? (
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-medium">Tokens: <span className="font-bold">{tokenBalance}</span></p>
+              <p className="text-sm font-medium">Tokens: <span className="font-bold">{tokenBalance || '0'}</span></p>
               <p className="text-sm font-medium">Address: <span className="font-mono">{`${account.slice(0, 6)}....${account.slice(-4)}`}</span></p>
               <p className="text-sm font-medium">Balance: <span className="font-bold">{`${parseFloat(balance).toFixed(4)} ETH`}</span></p>
             </div>
@@ -63,5 +67,6 @@ const Header = ({ connectWallet, disconnectWallet, account, balance, tokenBalanc
     </header>
   );
 };
+
 
 export default Header;

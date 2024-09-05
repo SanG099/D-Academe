@@ -9,6 +9,7 @@ const BuyCourses = ({ contract, account, addToCart, buyCourse, setLoading }) => 
   const [contact, setContact] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [youtubeLink, setYoutubeLink] = useState(""); // State to store the YouTube link
 
   const courses = [
     { id: 1, name: "Web Development", description: "Learn to build websites", image: "/images/web-dev.jpg", price: "Tkn 10" },
@@ -28,28 +29,32 @@ const BuyCourses = ({ contract, account, addToCart, buyCourse, setLoading }) => 
     setContact('');
     setQuantity(1);
   };
-
   const handleBuyCourse = async (e) => {
     e.preventDefault();
     if (!account) {
       alert("Please connect your wallet to proceed.");
       return;
     }
-
-    setLoading(true); // Show loader
+  
+    // setLoading(true); // Show loader
     try {
-      await buyCourse(selectedCourse, quantity, name, address, contact);
-      setCartMessage(`${selectedCourse.name} purchased successfully!`);
+      await buyCourse(selectedCourse, quantity, name, address, contact); // Call with appropriate params
+      // setCartMessage(`${selectedCourse.name} purchased successfully!`);
+      
+      // Fetch the YouTube link after purchase
+      const courseDetails = await contract.methods.courses(selectedCourse.id).call();
+      setYoutubeLink(courseDetails.youtubeLink); // Set the YouTube link
+  
       setSelectedCourse(null);
     } catch (error) {
       console.error("Error buying course:", error.message);
       setCartMessage(`Error buying ${selectedCourse.name}.`);
     } finally {
-      setLoading(false); // Hide loader
-      setTimeout(() => setCartMessage(""), 3000);
+      // setLoading(false); // Hide loader
+      // setTimeout(() => setCartMessage(""), 3000);
     }
   };
-
+  
   const handleAddToCart = (course) => {
     setLoading(true); // Show loader
     setCartMessage(`Adding ${course.name} to cart...`);
@@ -135,6 +140,21 @@ const BuyCourses = ({ contract, account, addToCart, buyCourse, setLoading }) => 
         </form>
       )}
 
+      {youtubeLink && (
+        <div className="mt-6 w-full max-w-lg bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">Course Video</h3>
+          <iframe
+            width="560"
+            height="315"
+            src={youtubeLink}
+            title="Course Video"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      )}
+
       <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredCourses.map(course => (
           <div
@@ -164,7 +184,8 @@ const BuyCourses = ({ contract, account, addToCart, buyCourse, setLoading }) => 
           </div>
         ))}
       </div>
-    </div>
+    </div>  
+    
   );
 };
 

@@ -1,23 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import tokenImage from '../assets/Token.png';
 import cartImg from '../assets/Cart.png';
 import buyImg from '../assets/courses.png';
 import courseImg from '../assets/images.jpeg';
-import CoursePopup from '../Components/CoursePopup' // Import the popup component
+import CoursePopup from '../Components/CoursePopup';
 
 const Home = ({ contract, account }) => {
   const navigate = useNavigate();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
 
-  // Navigation handlers
+  useEffect(() => {
+    if (!contract || !account) {
+      console.log('Contract or account is not available.');
+    } else {
+      console.log('Wallet is connected.');
+      console.log('Contract:', contract);
+      console.log('Account:', account);
+    }
+  }, [contract, account]);
+
   const goToBuyToken = () => navigate('/buy-token');
   const goToCart = () => navigate('/Cart');
   const goToBuyCourses = () => navigate('/BuyCourses');
 
-  // Sample data for courses
   const courseDetails = {
+    id: 1,
     title: 'Solidity',
     description: 'Learn the basics of Solidity and smart contract development.',
     benefits: [
@@ -27,19 +36,29 @@ const Home = ({ contract, account }) => {
     ],
   };
 
-  // Handlers for the course popup
   const openPopup = (course) => {
     setSelectedCourse(course);
     setIsPopupOpen(true);
   };
 
   const closePopup = () => setIsPopupOpen(false);
-  const handleBuy = () => {
-    alert('Course purchased successfully!');
-    closePopup();
+
+  const handleBuy = async ({ id, name, address, contact, quantity }) => {
+    if (!contract || !account) {
+      alert('Contract or account not found');
+      return;
+    }
+
+    try {
+      await contract.methods.buyCourse(id, name, address, contact, quantity).send({ from: account });
+      alert('Course purchased successfully!');
+      closePopup();
+    } catch (error) {
+      console.error('Error buying course:', error.message);
+      alert('Error purchasing course. Please try again.');
+    }
   };
 
-  // Component for the informational cards
   const InfoCard = ({ icon, title, description }) => (
     <div className="flex flex-col items-center p-6 bg-gray-100 hover:bg-green-300 rounded-lg shadow-lg">
       <div className="text-green-600 text-4xl mb-4">{icon}</div>
@@ -48,7 +67,6 @@ const Home = ({ contract, account }) => {
     </div>
   );
 
-  // Component for the course cards
   const CourseCard = ({ imgSrc, title, instructor, duration, price, onClick }) => (
     <div className="bg-white p-4 rounded-lg shadow-lg">
       <img src={imgSrc} alt="Course Image" className="w-full h-40 object-cover rounded-t-lg" />
@@ -104,24 +122,16 @@ const Home = ({ contract, account }) => {
             imgSrc={tokenImage}
             title="Buy Token"
             description="Purchase tokens to access premium content and courses."
-             className="w-64 h-64 mb-2 rounded-lg object-cover"
             onClick={goToBuyToken}
-            
-
-           
           />
           <CourseCard
             imgSrc={cartImg}
             title="Cart"
             description="View the courses and content in your cart."
-             className="w-64 h-64 mb-2 rounded-lg object-cover"
             onClick={goToCart}
-            
-            
           />
           <CourseCard
             imgSrc={buyImg}
-             className="w-64 h-64 mb-2 rounded-lg object-cover"
             title="Buy Courses"
             description="Browse and purchase our courses to enhance your skills."
             onClick={goToBuyCourses}
@@ -164,7 +174,7 @@ const Home = ({ contract, account }) => {
 
         {/* Course Popup */}
         {isPopupOpen && (
-          <CoursePopup course={selectedCourse} onClose={closePopup} onBuy={handleBuy} />
+          <CoursePopup course={selectedCourse} onClose={closePopup} handleBuyCourse={handleBuy} />
         )}
       </div>
     </section>
